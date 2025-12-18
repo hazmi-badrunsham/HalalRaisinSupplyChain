@@ -1,16 +1,15 @@
-// consumer-cli.js
-// FIXED – ethers v6 compatible with proper ABI and clean RPC URL
-
+// consumer-cli.js - FIXED VERSION
 const { ethers } = require("ethers");
 const readline = require("readline");
 
 // ===== CONFIG =====
-const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/203linwjgJOZpUIWdMD-i"; // FIXED: removed trailing spaces
+const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/203linwjgJOZpUIWdMD-i"; // REMOVED TRAILING SPACES
 const CONTRACT_ADDRESS = "0x95dF21cE4Fbb8eCf6916CA98315c77a191A1785c";
 
-// FIXED ABI: Proper function signature matching the contract's return values
+// ===== CORRECT ABI =====
 const ABI = [
-  "function getBatch(string memory batchId) view returns (string memory productName, string memory batchId, address producer, address currentOwner, string memory status, string memory halalCertHash, uint256 createdAt)"
+  "function batchExists(string) view returns (bool)",
+  "function getBatch(string batchId) view returns (string,string,address,address,string,string,uint256)"
 ];
 
 // SETUP
@@ -29,8 +28,8 @@ rl.question("🔍 Enter Batch ID: ", async (input) => {
   
   try {
     // Check if batch exists first
-    const batchExists = await contract.batchExists(batchId);
-    if (!batchExists) {
+    const exists = await contract.batchExists(batchId);
+    if (!exists) {
       console.error("\n❌ Batch not found on the blockchain");
       console.error(`🔍 Searched for Batch ID: ${batchId}`);
       console.error("💡 Tip: Verify the Batch ID matches exactly what was created in your test script");
@@ -38,18 +37,18 @@ rl.question("🔍 Enter Batch ID: ", async (input) => {
       return;
     }
     
-    // Get batch details
+    // Get batch details - returns array, not object
     const batch = await contract.getBatch(batchId);
 
     console.log("\n✅ HALAL VERIFICATION SUCCESSFUL");
     console.log("==================================");
-    console.log(`Product Name   : ${batch.productName}`);
-    console.log(`Batch ID       : ${batch.batchId}`);
-    console.log(`Producer       : ${batch.producer}`);
-    console.log(`Current Owner  : ${batch.currentOwner}`);
-    console.log(`Status         : ${batch.status}`);
-    console.log(`Halal Cert Hash: ${batch.halalCertHash || "(not certified)"}`);
-    console.log(`Created At     : ${new Date(Number(batch.createdAt) * 1000).toLocaleString()}`);
+    console.log(`Product Name   : ${batch[0]}`);
+    console.log(`Batch ID       : ${batch[1]}`);
+    console.log(`Producer       : ${batch[2]}`);
+    console.log(`Current Owner  : ${batch[3]}`);
+    console.log(`Status         : ${batch[4]}`);
+    console.log(`Halal Cert Hash: ${batch[5] || "(not certified)"}`);
+    console.log(`Created At     : ${new Date(Number(batch[6]) * 1000).toLocaleString()}`);
     console.log("==================================\n");
     console.log("🔗 View on Sepolia Etherscan: https://sepolia.etherscan.io/address/" + CONTRACT_ADDRESS);
     
@@ -72,7 +71,7 @@ rl.question("🔍 Enter Batch ID: ", async (input) => {
     } else {
       console.error("\n💡 DEBUG INFO:");
       console.error(`- Contract: ${CONTRACT_ADDRESS}`);
-      console.error(`- RPC URL  : ${RPC_URL.substring(0, 40)}...`); // Show partial URL for security
+      console.error(`- RPC URL  : ${RPC_URL.substring(0, 40)}...`);
       console.error(`- Batch ID : "${batchId}"`);
     }
   } finally {
