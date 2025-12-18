@@ -43,7 +43,7 @@ contract HalalRaisinSupplyChain is AccessControl {
     EnumerableSet.AddressSet private distributors;
     EnumerableSet.AddressSet private retailers;
 
-    // Events used for logging important actions (Phase 1)
+    // Events used for logging important actions
     event BatchCreated(string batchId, string productName, address creator);
     event HalalCertified(string batchId, string certHash, address certifier);
     event StatusUpdated(string batchId, string newStatus, address updater);
@@ -63,36 +63,40 @@ contract HalalRaisinSupplyChain is AccessControl {
         producers.add(msg.sender);
     }
 
-    // =======================
-    // Role management (Phase 1)
-    // =======================
-
     // Add a new producer
-    function assignProducer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function assignProducer(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         grantRole(PRODUCER_ROLE, account);
         producers.add(account);
     }
 
     // Add a halal authority
-    function assignHalalAuthority(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function assignHalalAuthority(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         grantRole(HALAL_AUTHORITY_ROLE, account);
     }
 
     // Add a distributor
-    function assignDistributor(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function assignDistributor(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         grantRole(DISTRIBUTOR_ROLE, account);
         distributors.add(account);
     }
 
     // Add a retailer
-    function assignRetailer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function assignRetailer(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         grantRole(RETAILER_ROLE, account);
         retailers.add(account);
     }
-
-    // =======================
-    // Batch creation (Phase 1)
-    // =======================
 
     // Allows a producer to create a new batch
     function createBatch(string memory batchId, string memory productName)
@@ -116,10 +120,6 @@ contract HalalRaisinSupplyChain is AccessControl {
         emit BatchCreated(batchId, productName, msg.sender);
     }
 
-    // =======================
-    // Halal certification (Phase 1)
-    // =======================
-
     // Used by halal authority to certify a batch
     function setHalalCertificate(string memory batchId, string memory certHash)
         external
@@ -130,10 +130,6 @@ contract HalalRaisinSupplyChain is AccessControl {
         batches[batchId].status = "Certified Halal";
         emit HalalCertified(batchId, certHash, msg.sender);
     }
-
-    // =======================
-    // Status update (Phase 1)
-    // =======================
 
     // Updates the batch status as it moves through the supply chain
     function updateStatus(string memory batchId, string memory newStatus)
@@ -154,10 +150,6 @@ contract HalalRaisinSupplyChain is AccessControl {
         emit StatusUpdated(batchId, newStatus, msg.sender);
     }
 
-    // =======================
-    // Batch transfer (Phase 1)
-    // =======================
-
     // Transfers ownership following the supply chain order
     function transferBatch(string memory batchId, address to)
         external
@@ -175,10 +167,6 @@ contract HalalRaisinSupplyChain is AccessControl {
         batch.currentOwner = to;
         emit BatchTransferred(batchId, msg.sender, to);
     }
-
-    // =======================
-    // Read batch data (Phase 1)
-    // =======================
 
     // Public function to read batch information
     // Used by consumers or external applications
