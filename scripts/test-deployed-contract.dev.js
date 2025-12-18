@@ -27,7 +27,7 @@ async function main() {
 
   // ===== UNIQUE BATCH =====
   const batchId = `RAISIN-DEV-${Date.now()}`;
-  const productName = "Dev Mode Sepolia Raisins";
+  const productName = "Sepolia Raisins";
   const certHash = "QmDevModeHalalCert123";
 
   console.log("\n🆔 Batch ID:", batchId);
