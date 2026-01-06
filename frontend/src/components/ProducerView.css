@@ -1,0 +1,183 @@
+/* src/components/ProducerView.css */
+.producer-view {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.producer-view h2,
+.producer-view h3 {
+  color: #552583;
+  margin-bottom: 1.25rem;
+  font-weight: 700;
+}
+
+.producer-view h2 {
+  font-size: 1.6rem;
+  border-bottom: 2px solid #f0e6f5;
+  padding-bottom: 0.5rem;
+}
+
+/* Form */
+.create-batch-form {
+  background: #faf5ff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #d0c0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: white;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #552583;
+  box-shadow: 0 0 0 2px rgba(85, 37, 131, 0.2);
+}
+
+/* Primary Button */
+.btn-primary {
+  background: #552583;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #451d6a;
+}
+
+/* Batches Section */
+.batches-section h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.no-batches {
+  color: #777;
+  font-style: italic;
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+/* Batch Card */
+.batch-card {
+  background: white;
+  border: 1px solid #eae6f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.batch-id {
+  font-weight: 700;
+  color: #552583;
+  font-family: monospace;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-created {
+  background: #e6d7f0;
+  color: #552583;
+}
+
+.status-pending-halal-cert {
+  background: #fff8e1;
+  color: #e65100;
+}
+
+/* Small text */
+.batch-card small {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .producer-view {
+    padding: 0 10px;
+  }
+
+  .batch-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+}
+
+/* Alerts */
+.alert {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.alert-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.alert-error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+/* Contract info footer */
+.contract-info {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+  color: #777;
+}
+
+.contract-info code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}

@@ -1,23 +1,52 @@
-import logo from './logo.svg';
+// src/App.js
+import React, { useState } from 'react';
 import './App.css';
+import ProducerView from './components/ProducerView';
+
+const ROLES = [
+  { id: 'producer', label: 'Producer' },
+  { id: 'halal-authority', label: 'Halal Authority' },
+  { id: 'distributor', label: 'Distributor / Retailer' },
+  { id: 'consumer', label: 'Consumer' },
+];
 
 function App() {
+  const [selectedRole, setSelectedRole] = useState(null);
+
+  const handleRoleSelect = (roleId) => {
+    setSelectedRole(roleId);
+  };
+
+  const handleBack = () => {
+    setSelectedRole(null);
+  };
+
+  if (selectedRole === 'producer') {
+    return <ProducerView onBack={handleBack} />;
+  }
+
+  // Later: add other role views here
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <h1>Halal Raisin Supply Chain</h1>
+        <p className="App-subtitle">Select your role to continue</p>
       </header>
+
+      <div className="role-grid">
+        {ROLES.map((role) => (
+          <div
+            key={role.id}
+            className="role-card"
+            onClick={() => handleRoleSelect(role.id)}
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && handleRoleSelect(role.id)}
+          >
+            {role.label}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
