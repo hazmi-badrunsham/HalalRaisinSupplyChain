@@ -1,13 +1,18 @@
-# Sample Hardhat Project
+# 🍇 Halal Raisin Supply Chain dApp
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+A simple blockchain dApp for tracking halal-certified raisin batches on Ethereum (Sepolia testnet). Built with Solidity, Hardhat, React, and ethers.js.
 
-Try running some of the following tasks:
+## ✨ Features
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
+- **Producers**: Create new raisin batches  
+- **Halal Authorities**: Certify batches as halal  
+- **Distributors & Retailers**: Transfer and update batch status  
+- **Consumers**: Verify batch origin and halal certification  
+
+## 🛠️ Tech Stack
+
+- **Smart Contract**: Solidity + OpenZeppelin (AccessControl)  
+- **Testing & Deployment**: Hardhat  
+- **Frontend**: React + ethers.js  
+- **Network**: Ethereum Sepolia  
+
