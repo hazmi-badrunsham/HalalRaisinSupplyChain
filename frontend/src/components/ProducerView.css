@@ -181,3 +181,44 @@
   border-radius: 4px;
   font-family: monospace;
 }
+
+/* Back Button - Lakers Theme */
+.btn-back {
+  margin-top: 1rem;
+  background: none;
+  border: 1px solid #552583; /* Lakers Purple */
+  color: #552583;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  background: #f0e6f5; /* Light purple background on hover */
+  box-shadow: 0 2px 5px rgba(85, 37, 131, 0.1);
+}
+
+.btn-back:active {
+  transform: translateY(1px);
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* space between button and heading */
+  margin-bottom: 1.5rem;
+}
+
+.view-header h2 {
+  margin: 0;
+  color: #552583;
+  font-size: 1.6rem;
+  font-weight: 700;
+}

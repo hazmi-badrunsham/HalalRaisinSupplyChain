@@ -151,10 +151,13 @@ const ProducerView = ({ onBack }) => {
 
   return (
     <div className="producer-view">
-      <button className="btn-back" onClick={onBack}>
-        ← Back
-      </button>
-      <h2>Create New Raisin Batch</h2>
+    
+      <div className="view-header">
+  <button className="btn-back" onClick={onBack}>
+    ← Back
+  </button>
+  <h2>Create New Raisin Batch</h2>
+</div>
 
       {message && (
         <div className={`alert ${status === 'error' ? 'alert-error' : 'alert-success'}`}>

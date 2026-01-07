@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import './App.css';
 import ProducerView from './components/ProducerView';
+import HalalAuthorityView from './components/HalalAuthorityView';
+
 
 const ROLES = [
   { id: 'producer', label: 'Producer' },
@@ -23,6 +25,11 @@ function App() {
 
   if (selectedRole === 'producer') {
     return <ProducerView onBack={handleBack} />;
+    
+  }
+    if (selectedRole === 'halal-authority') {
+    return <HalalAuthorityView onBack={handleBack} />;
+    
   }
 
   // Later: add other role views here

@@ -1,0 +1,119 @@
+/* src/components/HalalAuthorityView.css */
+.halal-authority-view {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* Lakers Theme Colors */
+:root {
+  --lakers-purple: #552583;
+  --lakers-gold: #FDB927;
+  --lakers-gold-light: #ffcd56;
+  --lakers-dark: #1d1160;
+}
+
+
+.alert {
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.batches-section h3 {
+  color: var(--lakers-purple);
+  margin-bottom: 16px;
+}
+
+.no-batches {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.batches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.batch-card {
+  background: white;
+  border: 2px solid var(--lakers-gold);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.batch-id {
+  font-weight: bold;
+  color: var(--lakers-purple);
+  font-size: 1.1em;
+}
+
+.cert-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.cert-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.btn-certify {
+  background-color: var(--lakers-gold);
+  color: var(--lakers-dark);
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-certify:hover {
+  background-color: var(--lakers-gold-light);
+}
+
+.contract-info {
+  margin-top: 30px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  font-size: 0.9em;
+  color: #777;
+}
+
+.contract-info code {
+  background: #eee;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
