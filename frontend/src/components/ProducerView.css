@@ -1,224 +1,543 @@
 /* src/components/ProducerView.css */
+
+/* ===== LAKERS COLOR PALETTE ===== */
+:root {
+  --lakers-purple: #552583;    /* Primary purple */
+  --lakers-gold: #FDB927;      /* Primary gold */
+  --lakers-white: #FFFFFF;      /* White */
+  --lakers-black: #000000;      /* Black */
+  --lakers-purple-light: #6d30a8; /* Light purple */
+  --lakers-gold-light: #ffcf63;  /* Light gold */
+  --lakers-gray-dark: #1a1a1a;   /* Dark gray */
+  --lakers-gray: #333333;        /* Medium gray */
+  --lakers-gray-light: #f8f8f8;  /* Light gray */
+  --lakers-purple-transparent: rgba(85, 37, 131, 0.1);
+  --lakers-gold-transparent: rgba(253, 185, 39, 0.1);
+}
+
+/* ===== BASE STYLES ===== */
 .producer-view {
   width: 100%;
   max-width: 700px;
   margin: 0 auto;
+  padding: 20px;
+  background: var(--lakers-white);
+  min-height: 100vh;
 }
 
+/* Typography - Minimalist */
 .producer-view h2,
 .producer-view h3 {
-  color: #552583;
-  margin-bottom: 1.25rem;
   font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 0;
 }
 
 .producer-view h2 {
-  font-size: 1.6rem;
-  border-bottom: 2px solid #f0e6f5;
-  padding-bottom: 0.5rem;
+  font-size: 28px;
+  color: var(--lakers-black);
 }
 
-/* Form */
-.create-batch-form {
-  background: #faf5ff;
-  padding: 1.5rem;
-  border-radius: 10px;
+.producer-view h3 {
+  font-size: 20px;
+  color: var(--lakers-gray-dark);
+}
+
+/* ===== HEADER ===== */
+.view-header {
+  display: flex;
+  align-items: center;
   margin-bottom: 2.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--lakers-gray-light);
+}
+
+/* Back Button - Minimalist Lakers Style */
+.btn-back {
+  background: transparent;
+  border: 2px solid var(--lakers-purple);
+  color: var(--lakers-purple);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 20px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-back:hover {
+  background: var(--lakers-purple);
+  color: var(--lakers-white);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--lakers-purple-transparent);
+}
+
+.btn-back:active {
+  transform: translateY(0);
+}
+
+/* ===== FORM SECTION ===== */
+.create-batch-form {
+  background: var(--lakers-white);
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 3rem;
+  border: 2px solid var(--lakers-gray-light);
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.4rem;
+  margin-bottom: 8px;
   font-weight: 600;
-  color: #444;
-  font-size: 0.95rem;
+  color: var(--lakers-gray-dark);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 0.65rem;
-  border: 1px solid #d0c0e0;
-  border-radius: 6px;
-  font-size: 1rem;
-  background: white;
+  padding: 12px 16px;
+  border: 2px solid var(--lakers-gray-light);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--lakers-white);
+  color: var(--lakers-gray-dark);
+  transition: all 0.2s ease;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #552583;
-  box-shadow: 0 0 0 2px rgba(85, 37, 131, 0.2);
+  border-color: var(--lakers-purple);
+  box-shadow: 0 0 0 3px var(--lakers-purple-transparent);
 }
 
-/* Primary Button */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--lakers-gray);
+}
+
+/* Primary Button - Lakers Theme */
 .btn-primary {
-  background: #552583;
-  color: white;
+  background: linear-gradient(135deg, var(--lakers-purple) 0%, var(--lakers-purple-light) 100%);
+  color: var(--lakers-white);
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 1rem;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 16px;
   cursor: pointer;
   width: 100%;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn-primary:hover {
-  background: #451d6a;
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--lakers-purple-transparent);
 }
 
-/* Batches Section */
-.batches-section h3 {
-  font-size: 1.4rem;
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary .spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--lakers-white);
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== BATCHES SECTION ===== */
+.batches-section {
+  margin-top: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Refresh Button */
+.btn-refresh {
+  background: transparent;
+  border: 2px solid var(--lakers-gold);
+  color: var(--lakers-gold);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: var(--lakers-gold);
+  color: var(--lakers-black);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.batch-count {
+  color: var(--lakers-gray);
+  font-size: 14px;
   margin-bottom: 1rem;
-}
-
-.no-batches {
-  color: #777;
-  font-style: italic;
   text-align: center;
-  padding: 1.5rem 0;
 }
 
-/* Batch Card */
-.batch-card {
-  background: white;
-  border: 1px solid #eae6f0;
-  border-radius: 8px;
-  padding: 1.25rem;
+/* Loading State */
+.loading-batches {
+  text-align: center;
+  padding: 3rem;
+  color: var(--lakers-gray);
+}
+
+.loading-batches .spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--lakers-gray-light);
+  border-radius: 50%;
+  border-top-color: var(--lakers-purple);
+  animation: spin 1s ease-in-out infinite;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+/* No Batches State */
+.no-batches {
+  text-align: center;
+  padding: 3rem;
+  color: var(--lakers-gray);
+  border: 2px dashed var(--lakers-gray-light);
+  border-radius: 12px;
+  background: var(--lakers-gray-light);
+}
+
+.no-batches p {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: var(--lakers-gray-dark);
+}
+
+.no-batches small {
+  font-size: 14px;
+  color: var(--lakers-gray);
+}
+
+/* Batch Cards */
+.batches-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.batch-card {
+  background: var(--lakers-white);
+  border: 2px solid var(--lakers-gray-light);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.batch-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--lakers-purple), var(--lakers-gold));
+}
+
+.batch-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--lakers-purple);
 }
 
 .batch-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
 }
 
 .batch-id {
   font-weight: 700;
-  color: #552583;
-  font-family: monospace;
+  color: var(--lakers-black);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 16px;
+  line-height: 1.4;
 }
 
 /* Status Badges */
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 6px 12px;
   border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 2px solid transparent;
 }
 
-.status-created {
-  background: #e6d7f0;
-  color: #552583;
+.status-produced {
+  background: var(--lakers-gold-transparent);
+  color: var(--lakers-gray-dark);
+  border-color: var(--lakers-gold);
 }
 
-.status-pending-halal-cert {
-  background: #fff8e1;
-  color: #e65100;
+.status-certified-halal {
+  background: rgba(76, 175, 80, 0.1);
+  color: #2e7d32;
+  border-color: #4caf50;
 }
 
-/* Small text */
-.batch-card small {
-  color: #888;
-  font-size: 0.85rem;
+.status-shipped {
+  background: rgba(33, 150, 243, 0.1);
+  color: #1565c0;
+  border-color: #2196f3;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-  .producer-view {
-    padding: 0 10px;
-  }
-
-  .batch-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-  }
+.status-delivered {
+  background: rgba(121, 85, 72, 0.1);
+  color: #5d4037;
+  border-color: #795548;
 }
 
-/* Alerts */
+/* Batch Details */
+.batch-details {
+  margin-top: 1rem;
+}
+
+.batch-details p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--lakers-gray);
+  line-height: 1.5;
+}
+
+.batch-details strong {
+  color: var(--lakers-gray-dark);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.address {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  background: var(--lakers-gray-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.timestamp {
+  color: var(--lakers-gray) !important;
+  font-size: 13px !important;
+}
+
+.certified {
+  color: #2e7d32 !important;
+  font-weight: 600 !important;
+}
+
+/* ===== ALERTS ===== */
 .alert {
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 6px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
   font-weight: 500;
+  border: 2px solid transparent;
+  font-size: 14px;
 }
 
 .alert-success {
-  background: #e8f5e9;
+  background: rgba(76, 175, 80, 0.1);
   color: #2e7d32;
-  border: 1px solid #c8e6c9;
+  border-color: #4caf50;
 }
 
 .alert-error {
-  background: #ffebee;
+  background: rgba(244, 67, 54, 0.1);
   color: #c62828;
-  border: 1px solid #ffcdd2;
+  border-color: #f44336;
 }
 
-/* Contract info footer */
+.alert-info {
+  background: rgba(33, 150, 243, 0.1);
+  color: #1565c0;
+  border-color: #2196f3;
+}
+
+/* ===== CONTRACT INFO ===== */
 .contract-info {
-  margin-top: 2rem;
+  margin-top: 3rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #eee;
-  font-size: 0.85rem;
-  color: #777;
+  border-top: 2px solid var(--lakers-gray-light);
+  font-size: 13px;
+  color: var(--lakers-gray);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.contract-info p {
+  margin: 0;
+}
+
+.contract-info strong {
+  color: var(--lakers-gray-dark);
+  margin-right: 6px;
+  font-weight: 600;
 }
 
 .contract-info code {
-  background: #f5f5f5;
-  padding: 2px 6px;
+  background: var(--lakers-gray-light);
+  padding: 4px 8px;
   border-radius: 4px;
-  font-family: monospace;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 12px;
 }
 
-/* Back Button - Lakers Theme */
-.btn-back {
-  margin-top: 1rem;
+.contract-info .address {
   background: none;
-  border: 1px solid #552583; /* Lakers Purple */
-  color: #552583;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  margin-bottom: 1.25rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  padding: 0;
+  margin-left: 6px;
 }
 
-.btn-back:hover {
-  background: #f0e6f5; /* Light purple background on hover */
-  box-shadow: 0 2px 5px rgba(85, 37, 131, 0.1);
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .producer-view {
+    padding: 16px;
+  }
+  
+  .view-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .btn-back {
+    margin-right: 0;
+  }
+  
+  .create-batch-form {
+    padding: 1.5rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .batch-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .contract-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .producer-view h2 {
+    font-size: 24px;
+  }
 }
 
-.btn-back:active {
-  transform: translateY(1px);
+@media (max-width: 480px) {
+  .producer-view h2 {
+    font-size: 20px;
+  }
+  
+  .producer-view h3 {
+    font-size: 18px;
+  }
+  
+  .batch-card {
+    padding: 1rem;
+  }
+  
+  .btn-primary {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
 }
 
-.view-header {
-  display: flex;
-  align-items: center;
-  gap: 12px; /* space between button and heading */
-  margin-bottom: 1.5rem;
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.view-header h2 {
-  margin: 0;
-  color: #552583;
-  font-size: 1.6rem;
-  font-weight: 700;
+.batch-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.batch-card:nth-child(odd) {
+  animation-delay: 0.1s;
+}
+
+.batch-card:nth-child(even) {
+  animation-delay: 0.2s;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(85, 37, 131, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--lakers-purple);
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
 }

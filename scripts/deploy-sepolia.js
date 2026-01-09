@@ -1,29 +1,44 @@
-// scripts/deploy-sepolia.js
 const hre = require("hardhat");
 
 async function main() {
-  console.log("🚀 Deploying HalalRaisinSupplyChain to Sepolia...");
+  console.log("🚀 Deploying HalalRaisinSupplyChainV2 to Sepolia...");
 
   // Get accounts
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
 
-  // Deploy contract
-  const HalalRaisinSupplyChain = await hre.ethers.getContractFactory("HalalRaisinSupplyChain");
-  const contract = await HalalRaisinSupplyChain.deploy();
+  // Deploy contract - Use the correct contract name
+  const HalalRaisinSupplyChainV2 = await hre.ethers.getContractFactory("HalalRaisinSupplyChainV2");
+  const contract = await HalalRaisinSupplyChainV2.deploy();
   
   await contract.waitForDeployment();
-  console.log("✅ Contract deployed to:", await contract.getAddress());
+  const contractAddress = await contract.getAddress();
+  console.log("✅ Contract deployed to:", contractAddress);
 
-  // Verify on Etherscan (if API key configured)
+  // Save contract address to a file for frontend
+  const fs = require("fs");
+  fs.writeFileSync("./deployed-address.txt", contractAddress);
+  console.log("✅ Contract address saved to deployed-address.txt");
+
+  // Verify on Etherscan
+  console.log("\n⏳ Waiting for transaction confirmations...");
+  await contract.deploymentTransaction().wait(5); // Wait for 5 confirmations
+  
   try {
-    await contract.deploymentTransaction().wait(5); // Wait for 5 confirmations
+    console.log("🔍 Verifying contract on Etherscan...");
     await hre.run("verify:verify", {
-      address: await contract.getAddress(),
+      address: contractAddress,
+      constructorArguments: [],
     });
     console.log("✅ Contract verified on Etherscan!");
   } catch (error) {
-    console.log("⚠️ Verification failed, contract still deployed:", error.message);
+    if (error.message.includes("Already Verified")) {
+      console.log("✅ Contract already verified!");
+    } else {
+      console.log("⚠️ Verification failed:", error.message);
+      console.log("You can verify manually with:");
+      console.log(`npx hardhat verify --network sepolia ${contractAddress}`);
+    }
   }
 }
 
