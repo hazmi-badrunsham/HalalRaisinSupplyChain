@@ -1,38 +1,38 @@
-// src/App.js
 import React, { useState } from 'react';
 import './App.css';
 import ProducerView from './components/ProducerView';
 import HalalAuthorityView from './components/HalalAuthorityView';
+import DistributorView from './components/DistributorView';
 
+// 1. Define the mapping outside the component
+const ROLE_VIEWS = {
+  'producer': ProducerView,
+  'halal-authority': HalalAuthorityView,
+  'distributor': DistributorView,
+  // Add new roles here as you build them:
+  // 'retailer': RetailerView,
+};
 
 const ROLES = [
   { id: 'producer', label: 'Producer' },
   { id: 'halal-authority', label: 'Halal Authority' },
-  { id: 'distributor', label: 'Distributor / Retailer' },
+  { id: 'distributor', label: 'Distributor' },
+  { id: 'retailer', label: 'Retailer' },
   { id: 'consumer', label: 'Consumer' },
 ];
 
 function App() {
   const [selectedRole, setSelectedRole] = useState(null);
 
-  const handleRoleSelect = (roleId) => {
-    setSelectedRole(roleId);
-  };
+  const handleBack = () => setSelectedRole(null);
 
-  const handleBack = () => {
-    setSelectedRole(null);
-  };
+  // 2. Dynamically select the component based on state
+  const SelectedView = ROLE_VIEWS[selectedRole];
 
-  if (selectedRole === 'producer') {
-    return <ProducerView onBack={handleBack} />;
-    
+  // 3. If a valid view exists, render it
+  if (SelectedView) {
+    return <SelectedView onBack={handleBack} />;
   }
-    if (selectedRole === 'halal-authority') {
-    return <HalalAuthorityView onBack={handleBack} />;
-    
-  }
-
-  // Later: add other role views here
 
   return (
     <div className="App">
@@ -46,9 +46,9 @@ function App() {
           <div
             key={role.id}
             className="role-card"
-            onClick={() => handleRoleSelect(role.id)}
+            onClick={() => setSelectedRole(role.id)}
             tabIndex={0}
-            onKeyPress={(e) => e.key === 'Enter' && handleRoleSelect(role.id)}
+            onKeyDown={(e) => e.key === 'Enter' && setSelectedRole(role.id)}
           >
             {role.label}
           </div>

@@ -14,6 +14,8 @@ const ProducerView = ({ onBack }) => {
   const [signerAddress, setSignerAddress] = useState(null);
   const [batches, setBatches] = useState([]);
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
+  // Track distributor address per batch (key: batchId, value: address)
+  const [distributorAddresses, setDistributorAddresses] = useState({});
 
   // Connect wallet & load batches on mount
   useEffect(() => {
@@ -28,8 +30,6 @@ const ProducerView = ({ onBack }) => {
         const accounts = await provider.send('eth_requestAccounts', []);
         const userAddr = accounts[0].toLowerCase();
         setSignerAddress(userAddr);
-
-        // Fetch batches created by this address
         await loadBatches(userAddr);
       } catch (err) {
         console.error('Wallet connection failed:', err);
@@ -40,23 +40,16 @@ const ProducerView = ({ onBack }) => {
     init();
   }, []);
 
-  // NEW: Improved loadBatches using contract storage
   const loadBatches = async (userAddress) => {
     setIsLoadingBatches(true);
     try {
-      console.log(`🔍 Loading batches for address: ${userAddress}`);
-      
-      // Use the new getBatchesByCreator function
       const batchIds = await readOnlyContract.getBatchesByCreator(userAddress);
-      console.log(`📋 Found ${batchIds.length} batches`);
-      
       if (batchIds.length === 0) {
         setBatches([]);
         setIsLoadingBatches(false);
         return;
       }
 
-      // Fetch detailed batch data for each batch
       const batchList = await Promise.all(
         batchIds.map(async (batchId) => {
           try {
@@ -78,20 +71,14 @@ const ProducerView = ({ onBack }) => {
         })
       );
 
-      // Filter out null results and sort by timestamp (newest first)
       const validBatches = batchList
         .filter(b => b !== null)
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
       setBatches(validBatches);
-      console.log(`✅ Successfully loaded ${validBatches.length} batches`);
-      
     } catch (err) {
       console.error('Failed to load batches:', err);
-      
-      // Fallback to event filtering if new function doesn't exist yet
       if (err.message.includes('function not found') || err.message.includes('cannot estimate gas')) {
-        console.log('⚠️ Using event filtering fallback...');
         await loadBatchesFallback(userAddress);
       } else {
         setMessage('Failed to load your batches: ' + err.message);
@@ -101,19 +88,12 @@ const ProducerView = ({ onBack }) => {
     }
   };
 
-  // Fallback method using event filtering (for old contract or as backup)
   const loadBatchesFallback = async (userAddress) => {
     try {
       const currentBlock = await readOnlyContract.provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 20000); // Last 20k blocks
-      
-      console.log(`🔍 Fetching events from block ${fromBlock} to ${currentBlock}`);
-
-      // Try with indexed event parameters
+      const fromBlock = Math.max(0, currentBlock - 20000);
       const filter = readOnlyContract.filters.BatchCreated(null, null, userAddress);
       const events = await readOnlyContract.queryFilter(filter, fromBlock, currentBlock);
-
-      console.log(`📋 Found ${events.length} events`);
 
       const batchList = await Promise.all(
         events.map(async (event) => {
@@ -125,10 +105,8 @@ const ProducerView = ({ onBack }) => {
               productName,
               status: batchData[4],
               timestamp: new Date(Number(batchData[6]) * 1000).toLocaleString(),
-              transactionHash: event.transactionHash,
             };
           } catch (err) {
-            console.warn(`Failed to fetch batch ${batchId}`);
             return null;
           }
         })
@@ -139,7 +117,6 @@ const ProducerView = ({ onBack }) => {
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
       setBatches(validBatches);
-      
     } catch (err) {
       console.error('Fallback method also failed:', err);
       setMessage('Failed to load batches. Please refresh or try again.');
@@ -172,42 +149,29 @@ const ProducerView = ({ onBack }) => {
       const signer = await provider.getSigner();
       const contract = getContractWithSigner(signer);
 
-      // Check if batch already exists
       const exists = await readOnlyContract.batchExists(formData.batchId);
       if (exists) {
         throw new Error('Batch ID already exists');
       }
 
-      // Create batch with optimized gas
       const tx = await contract.createBatch(formData.batchId, formData.productName, {
-        gasLimit: 500000, // Increased gas limit for new contract
+        gasLimit: 500000,
       });
 
       setMessage('Waiting for confirmation...');
-      const receipt = await tx.wait(2);
+      await tx.wait(2);
 
-      console.log('✅ Batch created:', receipt.transactionHash);
-
-      // Refresh batch list
       await loadBatches(signerAddress);
-
-      // Reset form
       setFormData({ batchId: '', productName: 'Raisins' });
       setMessage('Batch created successfully!');
       setStatus('success');
-      
-      // Auto-clear success message after 5 seconds
       setTimeout(() => {
-        if (status === 'success') {
-          setMessage('');
-          setStatus('');
-        }
+        setMessage('');
+        setStatus('');
       }, 5000);
-      
     } catch (err) {
       console.error('Batch creation error:', err);
       let msg = 'Transaction failed';
-      
       if (err.message.includes('user rejected transaction')) {
         msg = 'Transaction rejected by user';
       } else if (err.message.includes('Batch ID already exists')) {
@@ -221,16 +185,92 @@ const ProducerView = ({ onBack }) => {
       } else if (err.message.includes('gas')) {
         msg = 'Gas estimation failed. Try increasing gas limit.';
       }
-      
       setMessage(msg);
       setStatus('error');
-      
-      // Auto-clear error message after 5 seconds
       setTimeout(() => {
-        if (status === 'error') {
-          setMessage('');
-          setStatus('');
-        }
+        setMessage('');
+        setStatus('');
+      }, 5000);
+    }
+  };
+
+  // Handle distributor address change per batch
+  const handleDistributorAddressChange = (batchId, address) => {
+    setDistributorAddresses(prev => ({
+      ...prev,
+      [batchId]: address,
+    }));
+  };
+
+  const handleTransferBatch = async (batchId, currentOwner) => {
+    if (!signerAddress || signerAddress.toLowerCase() !== currentOwner.toLowerCase()) {
+      setMessage('Only the current owner can transfer this batch.');
+      setStatus('error');
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
+
+    const distributorAddr = distributorAddresses[batchId]?.trim();
+    if (!distributorAddr || !ethers.isAddress(distributorAddr)) {
+      setMessage('Please enter a valid distributor wallet address.');
+      setStatus('error');
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
+
+    try {
+      setStatus('transferring');
+      setMessage(`Transferring batch ${batchId}...`);
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = getContractWithSigner(signer);
+
+      // Step 1: Transfer ownership
+      const tx1 = await contract.transferBatch(batchId, distributorAddr, {
+        gasLimit: 300000,
+      });
+      await tx1.wait(2);
+
+      // Step 2: Update status to "At Distributor"
+      const tx2 = await contract.updateStatus(batchId, "At Distributor", {
+        gasLimit: 200000,
+      });
+      await tx2.wait(2);
+
+      setMessage('Batch transferred and status updated!');
+      setStatus('success');
+      setTimeout(() => {
+        setMessage('');
+        setStatus('');
+      }, 5000);
+
+      // Clear input and refresh
+      setDistributorAddresses(prev => {
+        const newAddr = { ...prev };
+        delete newAddr[batchId];
+        return newAddr;
+      });
+      await loadBatches(signerAddress);
+    } catch (err) {
+      console.error('Transfer error:', err);
+      let msg = 'Transfer failed';
+      if (err.message.includes('user rejected transaction')) {
+        msg = 'Transaction rejected';
+      } else if (err.message.includes('Only owner can transfer')) {
+        msg = 'Only the current owner can transfer';
+      } else if (err.message.includes('Producer -> Distributor only')) {
+        msg = 'Recipient must be an authorized Distributor';
+      } else if (err.message.includes('insufficient funds')) {
+        msg = 'Insufficient gas fee';
+      } else if (err.message.includes('Batch does not exist')) {
+        msg = 'Batch not found';
+      }
+      setMessage(msg);
+      setStatus('error');
+      setTimeout(() => {
+        setMessage('');
+        setStatus('');
       }, 5000);
     }
   };
@@ -345,6 +385,29 @@ const ProducerView = ({ onBack }) => {
                       </p>
                     )}
                   </div>
+
+                  {/* Transfer Section */}
+                  {signerAddress?.toLowerCase() === batch.currentOwner.toLowerCase() && (
+                    <div className="batch-actions">
+                      <div className="transfer-input-group">
+                        <input
+                          type="text"
+                          placeholder="Distributor wallet address (0x...)"
+                          value={distributorAddresses[batch.id] || ''}
+                          onChange={(e) => handleDistributorAddressChange(batch.id, e.target.value)}
+                          className="distributor-address-input"
+                          disabled={status === 'transferring'}
+                        />
+                        <button
+                          className="btn-transfer"
+                          onClick={() => handleTransferBatch(batch.id, batch.currentOwner)}
+                          disabled={!distributorAddresses[batch.id]?.trim() || status === 'transferring'}
+                        >
+                          {status === 'transferring' ? 'Transferring...' : 'Transfer to Distributor'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

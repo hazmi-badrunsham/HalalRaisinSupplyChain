@@ -5,14 +5,7 @@ import {
   CONTRACT_ADDRESS, 
   getContractWithSigner, 
   readOnlyContract,
-  getBatchesByCreator,
-  getBatchesByOwner,
-  getAllBatchIds,
-  getMultipleBatches,
-  checkBatchExists,
-  getBatchDetails,
-  hasRole,
-  getWalletAddress
+  hasRole
 } from '../services/blockchain';
 import { ethers } from 'ethers';
 
@@ -24,7 +17,7 @@ const HalalAuthorityView = ({ onBack }) => {
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
   const [activeCertHash, setActiveCertHash] = useState({});
-  const [filter, setFilter] = useState('all'); // 'all', 'pending', 'certified'
+  const [filter, setFilter] = useState('pending'); // 'all', 'pending', 'certified'
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
@@ -77,95 +70,97 @@ const HalalAuthorityView = ({ onBack }) => {
     }
   }, [batches, filter]);
 
+  // FIXED: Use simpler approach - Get all batches using getAllBatchIds if available
   const loadAllBatches = async () => {
     setIsLoadingBatches(true);
     try {
-      console.log('🔍 Loading all batches...');
-      
-      // Method 1: Get all batch IDs (if contract supports it)
-      const totalCount = await readOnlyContract.getTotalBatchCount();
-      console.log(`📊 Total batches in system: ${totalCount}`);
+      console.log('🔍 Loading all batches for Halal Authority...');
       
       let allBatchIds = [];
       
-      if (totalCount > 0) {
-        // Get all batch IDs in chunks
-        const batchSize = 50;
-        for (let start = 0; start < totalCount; start += batchSize) {
-          const limit = Math.min(batchSize, totalCount - start);
-          try {
-            const ids = await readOnlyContract.getAllBatchIds(start, limit);
-            allBatchIds = [...allBatchIds, ...ids];
-          } catch (err) {
-            console.log('Using fallback method for batch IDs');
-            break;
-          }
+      // Try to use getAllBatchIds if it exists
+      try {
+        // Get total count first
+        const totalCount = await readOnlyContract.getTotalBatchCount();
+        console.log(`📊 Total batches in system: ${totalCount.toString()}`);
+        
+        if (Number(totalCount) > 0) {
+          // Get first 100 batches (adjust as needed)
+          allBatchIds = await readOnlyContract.getAllBatchIds(0, 100);
         }
+      } catch (err) {
+        console.log('getAllBatchIds failed, trying alternative:', err.message);
+        // Fallback: Get batches by status or use events
+        allBatchIds = await getBatchesByStatus('Produced');
       }
       
-      // If we couldn't get IDs via getAllBatchIds, try another approach
+      console.log(`📋 Found ${allBatchIds.length} batch IDs`);
+      
       if (allBatchIds.length === 0) {
-        // Fallback: Listen for events to get batch IDs
-        const currentBlock = await readOnlyContract.provider.getBlockNumber();
-        const fromBlock = Math.max(0, currentBlock - 20000); // Last 20k blocks
-        
-        const events = await readOnlyContract.queryFilter(
-          readOnlyContract.filters.BatchCreated(),
-          fromBlock,
-          currentBlock
-        );
-        
-        allBatchIds = events.map(event => event.args.batchId);
-        console.log(`📋 Found ${allBatchIds.length} batches via events`);
+        setBatches([]);
+        return;
       }
-      
-      // Remove duplicates and fetch batch details
-      const uniqueBatchIds = [...new Set(allBatchIds)];
-      
-      // Fetch detailed batch data
-      const batchDetails = await Promise.all(
-        uniqueBatchIds.map(async (batchId) => {
+
+      // Fetch detailed batch data for each batch
+      const batchList = await Promise.all(
+        allBatchIds.map(async (batchId) => {
           try {
-            const details = await getBatchDetails(batchId);
+            const batchData = await readOnlyContract.getBatch(batchId);
+            const certHash = batchData[5];
+            const isHalalCertified = certHash && certHash.length > 0;
+            const createdAt = new Date(Number(batchData[6]) * 1000);
+            
             return {
-              ...details,
-              isHalalCertified: details.certHash && details.certHash.length > 0,
-              needsCertification: !details.certHash || details.certHash.length === 0
+              id: batchId,
+              productName: batchData[0],
+              batchId: batchData[1],
+              producer: batchData[2],
+              currentOwner: batchData[3],
+              status: batchData[4],
+              certHash,
+              createdAt,
+              timestamp: createdAt.toLocaleString(),
+              isHalalCertified,
+              needsCertification: !isHalalCertified
             };
           } catch (err) {
-            console.warn(`Failed to fetch details for batch ${batchId}:`, err);
+            console.warn(`Failed to fetch batch ${batchId}:`, err);
             return null;
           }
         })
       );
-      
-      const validBatches = batchDetails
-        .filter(batch => batch !== null)
-        .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+
+      // Filter out null results and sort by timestamp (newest first)
+      const validBatches = batchList
+        .filter(b => b !== null)
+        .sort((a, b) => b.createdAt - a.createdAt);
       
       setBatches(validBatches);
       console.log(`✅ Successfully loaded ${validBatches.length} batches`);
       
     } catch (err) {
       console.error('Failed to load batches:', err);
-      setMessage('Failed to load batches: ' + err.message);
+      setMessage('Failed to load batches. Please try again.');
       setStatus('error');
     } finally {
       setIsLoadingBatches(false);
     }
   };
 
+  // Helper function to get batches by status
+  const getBatchesByStatus = async (status) => {
+    try {
+      // Try the new function
+      return await readOnlyContract.getBatchesByStatus(status, 0, 100);
+    } catch (err) {
+      console.log(`getBatchesByStatus failed for ${status}:`, err.message);
+      return [];
+    }
+  };
+
   const handleSetCertificate = async (batchId, certHashInput) => {
     if (!certHashInput.trim()) {
       setMessage('Certificate hash cannot be empty');
-      setStatus('error');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    // Validate IPFS hash format (basic check)
-    if (!certHashInput.startsWith('Qm') && certHashInput.length !== 46) {
-      setMessage('Please enter a valid IPFS hash (starts with Qm, 46 chars)');
       setStatus('error');
       setTimeout(() => setMessage(''), 3000);
       return;
@@ -183,7 +178,7 @@ const HalalAuthorityView = ({ onBack }) => {
         gasLimit: 500000,
       });
 
-      setMessage('Waiting for transaction confirmation...');
+      setMessage('Waiting for confirmation...');
       const receipt = await tx.wait(2);
 
       console.log('✅ Certificate set:', receipt.transactionHash);
@@ -197,12 +192,9 @@ const HalalAuthorityView = ({ onBack }) => {
       setMessage(`✅ Halal certificate set for ${batchId}!`);
       setStatus('success');
       
-      // Auto-clear success message
       setTimeout(() => {
-        if (status === 'success') {
-          setMessage('');
-          setStatus('');
-        }
+        setMessage('');
+        setStatus('');
       }, 5000);
       
     } catch (err) {
@@ -211,32 +203,25 @@ const HalalAuthorityView = ({ onBack }) => {
       
       if (err.message.includes('user rejected transaction')) {
         msg = 'Transaction rejected by user';
-      } else if (err.message.includes('HALAL_AUTHORITY_ROLE')) {
-        msg = 'You are not authorized as Halal Authority. Contact the admin.';
+      } else if (err.message.includes('HALAL_AUTHORITY_ROLE') || err.message.includes('AccessControlUnauthorizedAccount')) {
+        msg = 'You are not authorized as Halal Authority.';
       } else if (err.message.includes('Batch does not exist')) {
-        msg = 'Batch not found or already certified.';
+        msg = 'Batch not found.';
       } else if (err.message.includes('insufficient funds')) {
         msg = 'Insufficient Sepolia ETH for gas fee';
-      } else if (err.message.includes('already certified')) {
-        msg = 'This batch is already halal certified';
       }
       
       setMessage(msg);
       setStatus('error');
       
-      // Auto-clear error message
       setTimeout(() => {
-        if (status === 'error') {
-          setMessage('');
-          setStatus('');
-        }
+        setMessage('');
+        setStatus('');
       }, 5000);
     }
   };
 
   const handleUpdateCertificate = async (batchId, newCertHash) => {
-    // This would require a separate function in the contract
-    // For now, we'll use setHalalCertificate (which overwrites)
     await handleSetCertificate(batchId, newCertHash);
   };
 
@@ -271,7 +256,10 @@ const HalalAuthorityView = ({ onBack }) => {
           <h3>⛔ Access Denied</h3>
           <p>Your wallet does not have Halal Authority permissions.</p>
           <p>Please contact the administrator to get assigned the HALAL_AUTHORITY_ROLE.</p>
-          <p className="wallet-info">Connected Wallet: {signerAddress?.slice(0, 6)}...{signerAddress?.slice(-4)}</p>
+          <p>Connected Wallet: {signerAddress?.slice(0, 6)}...{signerAddress?.slice(-4)}</p>
+          <div className="admin-tip">
+            <p><strong>Tip:</strong> If you deployed the contract, connect with your deployer wallet.</p>
+          </div>
         </div>
       </div>
     );
@@ -312,13 +300,13 @@ const HalalAuthorityView = ({ onBack }) => {
           className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
           onClick={() => handleFilterChange('all')}
         >
-          All Batches ({batches.length})
+          All ({batches.length})
         </button>
         <button 
           className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
           onClick={() => handleFilterChange('pending')}
         >
-          Pending Certification ({getPendingCount()})
+          Pending ({getPendingCount()})
         </button>
         <button 
           className={`filter-btn ${filter === 'certified' ? 'active' : ''}`}
@@ -336,7 +324,11 @@ const HalalAuthorityView = ({ onBack }) => {
       </div>
 
       <div className="batches-section">
-        <h3>{filter === 'all' ? 'All Batches' : filter === 'pending' ? 'Batches Awaiting Halal Certification' : 'Certified Halal Batches'}</h3>
+        <h3>
+          {filter === 'all' ? 'All Batches' : 
+           filter === 'pending' ? 'Batches Awaiting Halal Certification' : 
+           'Certified Halal Batches'}
+        </h3>
         
         {isLoadingBatches ? (
           <div className="loading-batches">
@@ -359,7 +351,7 @@ const HalalAuthorityView = ({ onBack }) => {
             </small>
           </div>
         ) : (
-          <div className="batches-grid">
+          <div className="batches-list">
             {filteredBatches.map((batch) => (
               <div key={batch.id} className="batch-card">
                 <div className="batch-header">
@@ -378,11 +370,6 @@ const HalalAuthorityView = ({ onBack }) => {
                       {batch.producer.slice(0, 6)}...{batch.producer.slice(-4)}
                     </span>
                   </p>
-                  <p><strong>Current Owner:</strong> 
-                    <span className="address" title={batch.currentOwner}>
-                      {batch.currentOwner.slice(0, 6)}...{batch.currentOwner.slice(-4)}
-                    </span>
-                  </p>
                   <p><strong>Status:</strong> {batch.status}</p>
                   <p className="timestamp"><small>Created: {batch.timestamp}</small></p>
                   
@@ -390,64 +377,46 @@ const HalalAuthorityView = ({ onBack }) => {
                     <div className="certificate-info">
                       <p><strong>Certificate Hash:</strong></p>
                       <code className="cert-hash" title={batch.certHash}>
-                        {batch.certHash.slice(0, 20)}...{batch.certHash.slice(-10)}
+                        {batch.certHash.length > 30 ? `${batch.certHash.substring(0, 15)}...${batch.certHash.substring(batch.certHash.length - 10)}` : batch.certHash}
                       </code>
                     </div>
                   )}
                 </div>
 
-                {!batch.isHalalCertified ? (
-                  <div className="certification-form">
-                    <div className="form-group">
-                      <label htmlFor={`cert-${batch.id}`}>IPFS Certificate Hash</label>
-                      <input
-                        type="text"
-                        id={`cert-${batch.id}`}
-                        placeholder="QmXxx... (46 character IPFS hash)"
-                        value={activeCertHash[batch.id] || ''}
-                        onChange={(e) => setActiveCertHash(prev => ({ 
-                          ...prev, 
-                          [batch.id]: e.target.value 
-                        }))}
-                        className="cert-input"
-                      />
-                      <small className="form-hint">
-                        Enter the IPFS hash of the halal certificate document
-                      </small>
-                    </div>
-                    <button
-                      className="btn-certify"
-                      onClick={() => handleSetCertificate(batch.id, activeCertHash[batch.id])}
-                      disabled={!activeCertHash[batch.id] || activeCertHash[batch.id].trim().length === 0}
-                    >
-                      ✅ Certify as Halal
-                    </button>
+                <div className="certification-form">
+                  <div className="form-group">
+                    <label htmlFor={`cert-${batch.id}`}>
+                      {batch.isHalalCertified ? 'Update Certificate' : 'Set Certificate'}
+                    </label>
+                    <input
+                      type="text"
+                      id={`cert-${batch.id}`}
+                      placeholder={batch.isHalalCertified ? "Update certificate reference" : "Enter certificate reference"}
+                      value={activeCertHash[batch.id] || ''}
+                      onChange={(e) => setActiveCertHash(prev => ({ 
+                        ...prev, 
+                        [batch.id]: e.target.value 
+                      }))}
+                      className="cert-input"
+                    />
+                    <small className="form-hint">
+                      {batch.isHalalCertified 
+                        ? 'Enter new certificate reference' 
+                        : 'Enter IPFS hash or any reference for halal certificate'}
+                    </small>
                   </div>
-                ) : (
-                  <div className="certification-form">
-                    <div className="form-group">
-                      <label htmlFor={`update-cert-${batch.id}`}>Update Certificate Hash</label>
-                      <input
-                        type="text"
-                        id={`update-cert-${batch.id}`}
-                        placeholder="Enter new IPFS hash to update"
-                        value={activeCertHash[batch.id] || ''}
-                        onChange={(e) => setActiveCertHash(prev => ({ 
-                          ...prev, 
-                          [batch.id]: e.target.value 
-                        }))}
-                        className="cert-input"
-                      />
-                    </div>
-                    <button
-                      className="btn-update"
-                      onClick={() => handleUpdateCertificate(batch.id, activeCertHash[batch.id])}
-                      disabled={!activeCertHash[batch.id] || activeCertHash[batch.id].trim().length === 0}
-                    >
-                      🔄 Update Certificate
-                    </button>
-                  </div>
-                )}
+                  <button
+                    className={batch.isHalalCertified ? 'btn-update' : 'btn-certify'}
+                    onClick={() => batch.isHalalCertified 
+                      ? handleUpdateCertificate(batch.id, activeCertHash[batch.id])
+                      : handleSetCertificate(batch.id, activeCertHash[batch.id])
+                    }
+                    disabled={!activeCertHash[batch.id] || activeCertHash[batch.id].trim().length === 0 || status === 'certifying'}
+                  >
+                    {status === 'certifying' ? 'Processing...' : 
+                     batch.isHalalCertified ? '🔄 Update Certificate' : '✅ Certify as Halal'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
