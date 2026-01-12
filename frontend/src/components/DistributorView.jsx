@@ -4,8 +4,7 @@ import {
   CONTRACT_ADDRESS,
   getContractWithSigner,
   readOnlyContract,
-  hasRole,
-  getBatchesByOwner
+  hasRole
 } from '../services/blockchain';
 import { ethers } from 'ethers';
 import './DistributorView.css';
@@ -55,15 +54,41 @@ const DistributorView = ({ onBack }) => {
     init();
   }, []);
 
-  // Load batches owned by distributor AND filter by "At Distributor" status
+  // Load batches owned by distributor AND filter by "At Distributor"
   const loadMyBatches = async (address) => {
     setLoading(true);
     try {
-      // Fetch all batches owned by this address
-      const allOwnedBatches = await getBatchesByOwner(address);
+      // Get batch IDs owned by this address
+      const batchIds = await readOnlyContract.getBatchesByOwner(address);
+
+      // Fetch full batch details
+      const batchList = await Promise.all(
+        batchIds.map(async (batchId) => {
+          try {
+            const batchData = await readOnlyContract.getBatch(batchId);
+            return {
+              id: batchId,
+              productName: batchData[0],
+              batchId: batchData[1],
+              producer: batchData[2],
+              currentOwner: batchData[3],
+              status: batchData[4],
+              certHash: batchData[5],
+              timestamp: new Date(Number(batchData[6]) * 1000).toLocaleString(),
+            };
+          } catch (err) {
+            console.warn(`Failed to fetch batch ${batchId}:`, err);
+            return null;
+          }
+        })
+      );
+
+      const validBatches = batchList
+        .filter(b => b !== null)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       // 🔽 FILTER: Only show batches with status EXACTLY "At Distributor"
-      const atDistributorBatches = allOwnedBatches.filter(
+      const atDistributorBatches = validBatches.filter(
         (batch) => batch.status === "At Distributor"
       );
 
@@ -72,7 +97,7 @@ const DistributorView = ({ onBack }) => {
       console.error('Failed to load batches:', err);
       setMessage('Failed to load your batches');
       setStatus('error');
-      setBatches([]); // Ensure "No batches" message appears
+      setBatches([]);
     } finally {
       setLoading(false);
     }
@@ -104,55 +129,61 @@ const DistributorView = ({ onBack }) => {
   };
 
   // Transfer batch to retailer
-  const handleTransferToRetailer = async (batchId) => {
-    if (!retailerAddress.trim()) {
-      setMessage('Please enter retailer address');
-      setStatus('error');
-      setTimeout(() => setMessage(''), 3000);
-      return;
+  // Transfer batch to retailer AND update status to "At Retailer"
+const handleTransferToRetailer = async (batchId) => {
+  if (!retailerAddress.trim()) {
+    setMessage('Please enter retailer address');
+    setStatus('error');
+    setTimeout(() => setMessage(''), 3000);
+    return;
+  }
+
+  if (!ethers.isAddress(retailerAddress)) {
+    setMessage('Invalid Ethereum address');
+    setStatus('error');
+    setTimeout(() => setMessage(''), 3000);
+    return;
+  }
+
+  try {
+    setStatus('transferring');
+    setMessage('Transferring batch...');
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = getContractWithSigner(signer);
+
+    // Step 1: Transfer ownership
+    const tx1 = await contract.transferBatch(batchId, retailerAddress);
+    await tx1.wait(2);
+
+    // Step 2: Update status to "At Retailer"
+    const tx2 = await contract.updateStatus(batchId, "At Retailer");
+    await tx2.wait(2);
+
+    await loadMyBatches(signerAddress);
+    setMessage('Batch transferred and status updated to "At Retailer"!');
+    setStatus('success');
+    setRetailerAddress('');
+
+    setTimeout(() => setMessage(''), 3000);
+  } catch (err) {
+    console.error('Transfer error:', err);
+    let msg = 'Transfer failed';
+    if (err.message.includes('user rejected transaction')) {
+      msg = 'Transaction rejected by user';
+    } else if (err.message.includes('Distributor -> Retailer only')) {
+      msg = 'Can only transfer to authorized retailers';
+    } else if (err.message.includes('Only owner can transfer')) {
+      msg = 'You are not the current owner of this batch';
+    } else if (err.message.includes('insufficient funds')) {
+      msg = 'Insufficient gas fee';
     }
-
-    if (!ethers.isAddress(retailerAddress)) {
-      setMessage('Invalid Ethereum address');
-      setStatus('error');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    try {
-      setStatus('transferring');
-      setMessage('Transferring batch...');
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = getContractWithSigner(signer);
-
-      const tx = await contract.transferBatch(batchId, retailerAddress);
-      await tx.wait(2);
-
-      await loadMyBatches(signerAddress);
-      setMessage('Batch transferred to retailer!');
-      setStatus('success');
-      setRetailerAddress(''); // Clear input after success
-
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      console.error('Transfer error:', err);
-      let msg = 'Transfer failed';
-      if (err.message.includes('user rejected transaction')) {
-        msg = 'Transaction rejected by user';
-      } else if (err.message.includes('Distributor -> Retailer only')) {
-        msg = 'Can only transfer to authorized retailers';
-      } else if (err.message.includes('Only owner can transfer')) {
-        msg = 'You are not the current owner of this batch';
-      } else if (err.message.includes('insufficient funds')) {
-        msg = 'Insufficient gas fee';
-      }
-      setMessage(msg);
-      setStatus('error');
-      setTimeout(() => setMessage(''), 3000);
-    }
-  };
+    setMessage(msg);
+    setStatus('error');
+    setTimeout(() => setMessage(''), 3000);
+  }
+};
 
   if (loading) {
     return (
@@ -239,11 +270,20 @@ const DistributorView = ({ onBack }) => {
                   </span>
                 </div>
 
-                <div className="batch-info">
+                <div className="batch-details">
                   <p><strong>Product:</strong> {batch.productName}</p>
                   <p><strong>Producer:</strong> {batch.producer.slice(0, 6)}...{batch.producer.slice(-4)}</p>
-                  <p><strong>Halal:</strong> {batch.isHalalCertified ? '✅ Certified' : '❌ Not Certified'}</p>
-                  <p><small>Received: {batch.timestamp}</small></p>
+                  <p><strong>Current Owner:</strong> 
+                    <span className="address">
+                      {batch.currentOwner.slice(0, 6)}...{batch.currentOwner.slice(-4)}
+                    </span>
+                  </p>
+                  <p className="timestamp"><small>Received: {batch.timestamp}</small></p>
+                  {batch.certHash && batch.certHash.length > 0 && (
+                    <p className="certified">
+                      <small>✅ Halal Certified</small>
+                    </p>
+                  )}
                 </div>
 
                 <div className="distributor-actions">
@@ -258,7 +298,6 @@ const DistributorView = ({ onBack }) => {
                       <option value="In Transit">In Transit</option>
                       <option value="At Warehouse">At Warehouse</option>
                       <option value="Ready for Sale">Ready for Sale</option>
-                      {/* Optional: keep "At Distributor" if needed */}
                       <option value="At Distributor">At Distributor</option>
                     </select>
                   </div>

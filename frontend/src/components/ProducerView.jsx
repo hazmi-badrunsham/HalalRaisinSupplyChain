@@ -281,7 +281,7 @@ const ProducerView = ({ onBack }) => {
         <button className="btn-back" onClick={onBack}>
           ← Back
         </button>
-        <h2>Producer</h2>
+        <h2>Producer Dashboard</h2>
       </div>
 
       {message && (

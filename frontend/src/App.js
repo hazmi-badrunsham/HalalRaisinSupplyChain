@@ -3,12 +3,19 @@ import './App.css';
 import ProducerView from './components/ProducerView';
 import HalalAuthorityView from './components/HalalAuthorityView';
 import DistributorView from './components/DistributorView';
+import RetailerView from './components/RetailerView';
+import ConsumerView from './components/ConsumerView';
+
+
 
 // 1. Define the mapping outside the component
 const ROLE_VIEWS = {
   'producer': ProducerView,
   'halal-authority': HalalAuthorityView,
   'distributor': DistributorView,
+  'retailer': RetailerView,
+  'consumer': ConsumerView,
+
   // Add new roles here as you build them:
   // 'retailer': RetailerView,
 };
