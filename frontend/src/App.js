@@ -8,6 +8,7 @@ import ConsumerView from './components/ConsumerView';
 
 
 
+
 // 1. Define the mapping outside the component
 const ROLE_VIEWS = {
   'producer': ProducerView,

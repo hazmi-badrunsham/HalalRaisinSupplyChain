@@ -1,6 +1,9 @@
 // src/components/ProducerView.jsx
 import React, { useState, useEffect } from 'react';
+import '../styles/globals.css'; // Add this FIRST
+
 import './ProducerView.css';
+
 import { CONTRACT_ADDRESS, getContractWithSigner, readOnlyContract } from '../services/blockchain';
 import { ethers } from 'ethers';
 
