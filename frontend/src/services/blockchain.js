@@ -6,9 +6,53 @@ export const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/203linwjgJOZpUIWdMD
 // TODO: Update this with your new contract address after deployment
 export const CONTRACT_ADDRESS = "0x47B4Feb9DA3827C81AC7d37aa98818481d2fD97B"; // REPLACE WITH NEW ADDRESS
 
+// Sepolia Chain ID
+const SEPOLIA_CHAIN_ID = '0xaa36a7'; // 11155111 in hex
+const SEPOLIA_CHAIN_ID_DECIMAL = 11155111n;
+
 // Read-only provider (for querying)
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 export const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, HALAL_ABI, provider);
+
+/**
+ * Ensure wallet is connected to Sepolia network
+ * This will prompt MetaMask to switch networks if needed
+ */
+export async function ensureSepoliaNetwork() {
+  if (typeof window.ethereum === 'undefined') {
+    throw new Error('MetaMask is not installed');
+  }
+
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+
+    // Check if already on Sepolia
+    if (network.chainId === SEPOLIA_CHAIN_ID_DECIMAL) {
+      return true;
+    }
+
+    // Request network switch
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: SEPOLIA_CHAIN_ID }],
+    });
+
+    return true;
+  } catch (error) {
+    // Error code 4902 means the chain hasn't been added to MetaMask
+    if (error.code === 4902) {
+      throw new Error('Please add Sepolia network to MetaMask first');
+    }
+
+    // User rejected the request
+    if (error.code === 4001) {
+      throw new Error('Network switch rejected by user');
+    }
+
+    throw new Error(`Failed to switch to Sepolia: ${error.message}`);
+  }
+}
 
 // Function to get contract with signer (for write operations)
 export function getContractWithSigner(signer) {
@@ -47,7 +91,7 @@ export async function verifyBatch(batchId) {
 export async function getBatchesByCreator(creatorAddress) {
   try {
     const batchIds = await readOnlyContract.getBatchesByCreator(creatorAddress);
-    
+
     if (batchIds.length === 0) {
       return [];
     }
@@ -93,7 +137,7 @@ export async function getBatchesByCreator(creatorAddress) {
 export async function getBatchesByOwner(ownerAddress) {
   try {
     const batchIds = await readOnlyContract.getBatchesByOwner(ownerAddress);
-    
+
     if (batchIds.length === 0) {
       return [];
     }
@@ -156,7 +200,7 @@ export async function getMultipleBatches(batchIds) {
     }
 
     const batchData = await readOnlyContract.getMultipleBatches(batchIds);
-    
+
     const [
       productNames,
       batchIdsResult,
@@ -181,7 +225,7 @@ export async function getMultipleBatches(batchIds) {
     }));
   } catch (error) {
     console.error("Error fetching multiple batches:", error);
-    
+
     // Fallback to individual calls if the batch function fails
     console.log("Falling back to individual batch calls...");
     const batches = await Promise.all(
@@ -249,13 +293,13 @@ export async function getAllBatchIds(start = 0, limit = 50) {
     return batchIds;
   } catch (error) {
     console.error("Error fetching batch IDs:", error);
-    
+
     // Fallback: try to get all batches by iterating
     if (error.message.includes("function not found")) {
       console.log("Using fallback method for getAllBatchIds");
       return [];
     }
-    
+
     throw error;
   }
 }
@@ -360,7 +404,7 @@ export async function getWalletAddress() {
  */
 export function onBatchCreated(callback) {
   const filter = readOnlyContract.filters.BatchCreated();
-  
+
   const listener = (...args) => {
     const event = args[args.length - 1];
     callback({
@@ -373,7 +417,7 @@ export function onBatchCreated(callback) {
   };
 
   readOnlyContract.on(filter, listener);
-  
+
   // Return unsubscribe function
   return () => {
     readOnlyContract.off(filter, listener);
@@ -390,7 +434,7 @@ export async function getPastBatchCreatedEvents(fromBlock = 0, toBlock = 'latest
   try {
     const filter = readOnlyContract.filters.BatchCreated();
     const events = await readOnlyContract.queryFilter(filter, fromBlock, toBlock);
-    
+
     return events.map(event => ({
       batchId: event.args.batchId,
       productName: event.args.productName,
