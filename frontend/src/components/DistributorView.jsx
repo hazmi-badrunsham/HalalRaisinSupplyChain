@@ -4,7 +4,8 @@ import {
   CONTRACT_ADDRESS,
   getContractWithSigner,
   readOnlyContract,
-  hasRole
+  hasRole,
+  ensureSepoliaNetwork
 } from '../services/blockchain';
 import { ethers } from 'ethers';
 import './DistributorView.css';
@@ -28,6 +29,9 @@ const DistributorView = ({ onBack }) => {
       }
 
       try {
+        // Ensure we're on Sepolia network
+        await ensureSepoliaNetwork();
+
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send('eth_requestAccounts', []);
         const userAddr = accounts[0].toLowerCase();
@@ -44,7 +48,11 @@ const DistributorView = ({ onBack }) => {
         }
       } catch (err) {
         console.error('Wallet connection failed:', err);
-        setMessage('Wallet connection denied');
+        if (err.message.includes('Sepolia')) {
+          setMessage(err.message);
+        } else {
+          setMessage('Wallet connection denied');
+        }
         setStatus('error');
       } finally {
         setLoading(false);
@@ -87,7 +95,7 @@ const DistributorView = ({ onBack }) => {
         .filter(b => b !== null)
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      // 🔽 FILTER: Only show batches with status EXACTLY "At Distributor"
+      // Only show batches with status EXACTLY "At Distributor"
       const atDistributorBatches = validBatches.filter(
         (batch) => batch.status === "At Distributor"
       );
@@ -109,6 +117,9 @@ const DistributorView = ({ onBack }) => {
       setStatus('updating');
       setMessage('Updating status...');
 
+      // Ensure we're on Sepolia before transaction
+      await ensureSepoliaNetwork();
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = getContractWithSigner(signer);
@@ -122,68 +133,78 @@ const DistributorView = ({ onBack }) => {
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       console.error('Status update error:', err);
-      setMessage('Failed to update status');
+      let msg = 'Failed to update status';
+      
+      if (err.message.includes('Sepolia')) {
+        msg = err.message;
+      }
+      
+      setMessage(msg);
       setStatus('error');
       setTimeout(() => setMessage(''), 3000);
     }
   };
 
-  // Transfer batch to retailer
   // Transfer batch to retailer AND update status to "At Retailer"
-const handleTransferToRetailer = async (batchId) => {
-  if (!retailerAddress.trim()) {
-    setMessage('Please enter retailer address');
-    setStatus('error');
-    setTimeout(() => setMessage(''), 3000);
-    return;
-  }
-
-  if (!ethers.isAddress(retailerAddress)) {
-    setMessage('Invalid Ethereum address');
-    setStatus('error');
-    setTimeout(() => setMessage(''), 3000);
-    return;
-  }
-
-  try {
-    setStatus('transferring');
-    setMessage('Transferring batch...');
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const contract = getContractWithSigner(signer);
-
-    // Step 1: Transfer ownership
-    const tx1 = await contract.transferBatch(batchId, retailerAddress);
-    await tx1.wait(2);
-
-    // Step 2: Update status to "At Retailer"
-    const tx2 = await contract.updateStatus(batchId, "At Retailer");
-    await tx2.wait(2);
-
-    await loadMyBatches(signerAddress);
-    setMessage('Batch transferred and status updated to "At Retailer"!');
-    setStatus('success');
-    setRetailerAddress('');
-
-    setTimeout(() => setMessage(''), 3000);
-  } catch (err) {
-    console.error('Transfer error:', err);
-    let msg = 'Transfer failed';
-    if (err.message.includes('user rejected transaction')) {
-      msg = 'Transaction rejected by user';
-    } else if (err.message.includes('Distributor -> Retailer only')) {
-      msg = 'Can only transfer to authorized retailers';
-    } else if (err.message.includes('Only owner can transfer')) {
-      msg = 'You are not the current owner of this batch';
-    } else if (err.message.includes('insufficient funds')) {
-      msg = 'Insufficient gas fee';
+  const handleTransferToRetailer = async (batchId) => {
+    if (!retailerAddress.trim()) {
+      setMessage('Please enter retailer address');
+      setStatus('error');
+      setTimeout(() => setMessage(''), 3000);
+      return;
     }
-    setMessage(msg);
-    setStatus('error');
-    setTimeout(() => setMessage(''), 3000);
-  }
-};
+
+    if (!ethers.isAddress(retailerAddress)) {
+      setMessage('Invalid Ethereum address');
+      setStatus('error');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
+    try {
+      setStatus('transferring');
+      setMessage('Transferring batch...');
+
+      // Ensure we're on Sepolia before transaction
+      await ensureSepoliaNetwork();
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = getContractWithSigner(signer);
+
+      // Step 1: Transfer ownership
+      const tx1 = await contract.transferBatch(batchId, retailerAddress);
+      await tx1.wait(2);
+
+      // Step 2: Update status to "At Retailer"
+      const tx2 = await contract.updateStatus(batchId, "At Retailer");
+      await tx2.wait(2);
+
+      await loadMyBatches(signerAddress);
+      setMessage('Batch transferred and status updated to "At Retailer"!');
+      setStatus('success');
+      setRetailerAddress('');
+
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.error('Transfer error:', err);
+      let msg = 'Transfer failed';
+      if (err.message.includes('user rejected transaction')) {
+        msg = 'Transaction rejected by user';
+      } else if (err.message.includes('Distributor -> Retailer only')) {
+        msg = 'Can only transfer to authorized retailers';
+      } else if (err.message.includes('Only owner can transfer')) {
+        msg = 'You are not the current owner of this batch';
+      } else if (err.message.includes('insufficient funds')) {
+        msg = 'Insufficient gas fee';
+      } else if (err.message.includes('Sepolia')) {
+        msg = err.message;
+      }
+      setMessage(msg);
+      setStatus('error');
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
 
   if (loading) {
     return (

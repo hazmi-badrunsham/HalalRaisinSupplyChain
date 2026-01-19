@@ -21,6 +21,23 @@ const HalalAuthorityView = ({ onBack }) => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
+  // Helper function to ensure Sepolia network
+  const ensureSepoliaNetwork = async () => {
+    const SEPOLIA_CHAIN_ID = '0xaa36a7'; // 11155111 in hex
+    
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: SEPOLIA_CHAIN_ID }],
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        throw new Error('Please add Sepolia network to MetaMask first');
+      }
+      throw switchError;
+    }
+  };
+
   // Connect wallet & check authorization
   useEffect(() => {
     const init = async () => {
@@ -31,6 +48,9 @@ const HalalAuthorityView = ({ onBack }) => {
       }
 
       try {
+        // Ensure we're on Sepolia network
+        await ensureSepoliaNetwork();
+
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send('eth_requestAccounts', []);
         const userAddr = accounts[0].toLowerCase();
@@ -49,7 +69,11 @@ const HalalAuthorityView = ({ onBack }) => {
         }
       } catch (err) {
         console.error('Wallet connection failed:', err);
-        setMessage('Wallet connection denied');
+        if (err.message.includes('Sepolia')) {
+          setMessage(err.message);
+        } else {
+          setMessage('Wallet connection denied');
+        }
         setStatus('error');
       } finally {
         setLoadingAuth(false);
@@ -170,6 +194,9 @@ const HalalAuthorityView = ({ onBack }) => {
       setStatus('certifying');
       setMessage(`Certifying ${batchId}...`);
 
+      // Ensure we're on Sepolia before transaction
+      await ensureSepoliaNetwork();
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = getContractWithSigner(signer);
@@ -209,20 +236,18 @@ const HalalAuthorityView = ({ onBack }) => {
         msg = 'Batch not found.';
       } else if (err.message.includes('insufficient funds')) {
         msg = 'Insufficient Sepolia ETH for gas fee';
+      } else if (err.message.includes('Sepolia')) {
+        msg = err.message;
       }
       
       setMessage(msg);
       setStatus('error');
-      
-      setTimeout(() => {
-        setMessage('');
-        setStatus('');
-      }, 5000);
+      setTimeout(() => { setMessage(''); setStatus(''); }, 5000);
     }
   };
 
-  const handleUpdateCertificate = async (batchId, newCertHash) => {
-    await handleSetCertificate(batchId, newCertHash);
+  const handleUpdateCertificate = async (batchId, certHashInput) => {
+    await handleSetCertificate(batchId, certHashInput);
   };
 
   const handleFilterChange = (newFilter) => {

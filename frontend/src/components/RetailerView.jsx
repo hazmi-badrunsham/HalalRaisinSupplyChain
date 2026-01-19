@@ -4,7 +4,8 @@ import {
   CONTRACT_ADDRESS,
   getContractWithSigner,
   readOnlyContract,
-  hasRole
+  hasRole,
+  ensureSepoliaNetwork
 } from '../services/blockchain';
 import { ethers } from 'ethers';
 import './RetailerView.css';
@@ -27,6 +28,9 @@ const RetailerView = ({ onBack }) => {
       }
 
       try {
+        // Ensure we're on Sepolia network
+        await ensureSepoliaNetwork();
+
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send('eth_requestAccounts', []);
         const userAddr = accounts[0].toLowerCase();
@@ -43,7 +47,11 @@ const RetailerView = ({ onBack }) => {
         }
       } catch (err) {
         console.error('Wallet connection failed:', err);
-        setMessage('Wallet connection denied');
+        if (err.message.includes('Sepolia')) {
+          setMessage(err.message);
+        } else {
+          setMessage('Wallet connection denied');
+        }
         setStatus('error');
       } finally {
         setLoading(false);
@@ -84,7 +92,7 @@ const RetailerView = ({ onBack }) => {
         .filter(b => b !== null)
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      // 🔽 Only show batches with status "At Retailer"
+      // Only show batches with status "At Retailer"
       const atRetailerBatches = validBatches.filter(
         (batch) => batch.status === "At Retailer"
       );
